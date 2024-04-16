@@ -31,7 +31,7 @@ async def get_contact_by_phone(db: Session, phone_number: str, user: User):
 
 
 async def get_contacts(db: Session, user: User, skip: int = 0, limit: int = 100):
-    result = db.execute(select(models.Contact).offset(skip).limit(limit))
+    result = db.execute(select(models.Contact).where(models.Contact.user_id == user.id).offset(skip).limit(limit))
     return result.scalars().all()
 
 
