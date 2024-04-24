@@ -7,12 +7,14 @@ from src.database.db import get_db
 from src.services.auth import auth_service
 from src.database import models
 from src.database.models import User
+from fastapi_limiter.depends import RateLimiter
 
 
 router = APIRouter(prefix='/contacts', tags=['contacts'])
 
 
-@router.post("/", response_model=schemas.ContactResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.ContactResponse, description='No more than 10 requests per minute',
+                         dependencies=[Depends(RateLimiter(times=10, seconds=60))], status_code=status.HTTP_201_CREATED)
 async def create_contact(contact: schemas.ContactCreate, db: Session = Depends(get_db),
                          current_user: User = Depends(auth_service.get_current_user)):
     db_contact_by_email = await crud.get_contact_by_email(db, email=contact.email, user=current_user)
@@ -22,7 +24,8 @@ async def create_contact(contact: schemas.ContactCreate, db: Session = Depends(g
     return await crud.create_contact(db=db, user=current_user, contact=contact)
 
 
-@router.get("/", response_model=List[schemas.ContactResponse])
+@router.get("/", response_model=List[schemas.ContactResponse], description='No more than 10 requests per minute',
+                         dependencies=[Depends(RateLimiter(times=10, seconds=60))])
 async def read_contacts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),
                         current_user: User = Depends(auth_service.get_current_user)):
     contacts = await crud.get_contacts(db, skip=skip, limit=limit, user=current_user)

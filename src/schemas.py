@@ -24,7 +24,7 @@ class ContactResponse(ContactBase):
     id: int
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class UserModel(BaseModel):
@@ -55,3 +55,5 @@ class TokenModel(BaseModel):
     token_type: str = "bearer"
 
 
+class RequestEmail(BaseModel):
+    email: EmailStr
