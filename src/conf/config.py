@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict, field_validator, EmailStr
 
 
 class Settings(BaseSettings):
@@ -18,10 +19,7 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: str | None = None
 
 
-    class Config:
-        extra = 'ignore'
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = ConfigDict(extra='ignore', env_file=".env", env_file_encoding="utf-8")  # noqa
 
 
 settings = Settings()

@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from src import crud, schemas
 from src.database.db import get_db
 from src.services.auth import auth_service
-from src.database import models
+
 from src.database.models import User
 from fastapi_limiter.depends import RateLimiter
 
@@ -17,6 +17,31 @@ router = APIRouter(prefix='/contacts', tags=['contacts'])
                          dependencies=[Depends(RateLimiter(times=10, seconds=60))], status_code=status.HTTP_201_CREATED)
 async def create_contact(contact: schemas.ContactCreate, db: Session = Depends(get_db),
                          current_user: User = Depends(auth_service.get_current_user)):
+    """
+    Create a new contact.
+
+    Parameters:
+        - contact (schemas.ContactCreate): The contact data to be created.
+        - db (Session, optional): The database session. Defaults to the session obtained from the `get_db` dependency.
+        - current_user (User, optional): The current authenticated user. Defaults to the user obtained from the `auth_service.get_current_user` dependency.
+
+    Returns:
+        - schemas.ContactResponse: The created contact.
+
+    Raises:
+        - HTTPException: If the email or phone number is already registered for the current user.
+
+    Description:
+        - This endpoint creates a new contact.
+        - It checks if the email or phone number is already registered for the current user.
+        - If either is already registered, it raises an HTTPException with a status code of 400 and a detail message indicating that the email or phone number is already registered.
+        - If both are not already registered, it calls the `crud.create_contact` function to create the contact in the database.
+        - The created contact is returned as a `schemas.ContactResponse` object.
+
+    Limitations:
+        - This endpoint has a rate limiter that allows no more than 10 requests per minute.
+        - It sets the status code of the response to 201 Created.
+    """
     db_contact_by_email = await crud.get_contact_by_email(db, email=contact.email, user=current_user)
     db_contact_by_phone = await crud.get_contact_by_phone(db, phone_number=contact.phone_number, user=current_user)
     if db_contact_by_email or db_contact_by_phone:
@@ -28,6 +53,7 @@ async def create_contact(contact: schemas.ContactCreate, db: Session = Depends(g
                          dependencies=[Depends(RateLimiter(times=10, seconds=60))])
 async def read_contacts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),
                         current_user: User = Depends(auth_service.get_current_user)):
+
     contacts = await crud.get_contacts(db, skip=skip, limit=limit, user=current_user)
     return contacts
 
@@ -35,6 +61,20 @@ async def read_contacts(skip: int = 0, limit: int = 100, db: Session = Depends(g
 @router.get("/{contact_id}", response_model=schemas.ContactResponse)
 async def read_contact(contact_id: int, db: Session = Depends(get_db),
                        user: User = Depends(auth_service.get_current_user)):
+    """
+    Retrieve a contact by its ID.
+
+    Parameters:
+        contact_id (int): The ID of the contact to retrieve.
+        db (Session, optional): The database session. Defaults to the session obtained from the `get_db` dependency.
+        user (User, optional): The current authenticated user. Defaults to the user obtained from the `auth_service.get_current_user` dependency.
+
+    Returns:
+        ContactResponse: The contact with the specified ID.
+
+    Raises:
+        HTTPException: If the contact with the specified ID is not found.
+    """
     db_contact = await crud.get_contact(db, contact_id=contact_id, user=user)
     if db_contact is None:
         raise HTTPException(status_code=404, detail="Contact not found")
@@ -85,5 +125,5 @@ async def delete_contact(contact_id: int, db: Session = Depends(get_db),
     db_contact = await crud.get_contact(db, contact_id=contact_id, user=user)
     if db_contact is None:
         raise HTTPException(status_code=404, detail="Contact not found")
-    return await crud.delete_contact(db=db, contact_id=contact_id)
+    return await crud.delete_contact(db=db, contact_id=contact_id, user=user)
 

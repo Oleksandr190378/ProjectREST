@@ -49,6 +49,8 @@ async def startup():
         port=settings.REDIS_PORT,
         db=0,
         password=settings.REDIS_PASSWORD,
+        encoding="utf-8",
+        decode_responses=True,
     )
     await FastAPILimiter.init(r)
 

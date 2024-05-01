@@ -16,6 +16,21 @@ security = HTTPBearer()
 
 @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def signup(body: UserModel, bt: BackgroundTasks, request: Request, db: Session = Depends(get_db)):
+    """
+    Create a new user account.
+
+    Parameters:
+        - body: The user data to create the account.
+        - bt: The background tasks object.
+        - request: The request object.
+        - db: The database session dependency.
+
+    Returns:
+        A dictionary containing the newly created user and a detail message.
+
+    Raises:
+        - HTTPException: If the account already exists.
+    """
     exist_user = await repository_users.get_user_by_email(body.email, db)
     if exist_user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Account already exists")
@@ -27,6 +42,20 @@ async def signup(body: UserModel, bt: BackgroundTasks, request: Request, db: Ses
 
 @router.post("/login", response_model=TokenModel)
 async def login(body: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    """
+    Authenticates a user by checking their email and password.
+
+    Args:
+        body (OAuth2PasswordRequestForm, optional): The request form containing the username and password. Defaults to Depends().
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+
+    Returns:
+        TokenModel: A dictionary containing the access token, refresh token, and token type.
+
+    Raises:
+        HTTPException: If the email is invalid, the email is not confirmed, or the password is invalid.
+
+    """
     user = await repository_users.get_user_by_email(body.username, db)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email")
